@@ -1,2 +1,52 @@
-# aht
-MicroPython driver for AHT sensors (humidity and temperature)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+Introduction
+============
+
+Driver in Micropython for AHT2x: humidity and temperature sensors.
+the driver covers 100% of the sensor's functionality:
+* measurement of relative humidity and temperature.
+* automatic calibration.
+* reset function.
+* control function (with CRC8 Dallas/Maxim).
+
+Compatible models:
+* AHT20
+* AHT21
+
+Dependencies
+=============
+
+This driver has no dependency
+
+Installing from PyPI
+=====================
+
+Copy the file aht.py in your project folder.
+
+Usage Example
+=============
+
+.. code-block:: micropython
+
+    import time, machine
+    import aht
+
+    # Example SCL pin and SDA pin for WEMOS D1 mini Lite
+    i2c = machine.I2C(scl=machine.Pin(5), sda=machine.Pin(4))
+    sensor = aht.AHT2x(i2c, crc=True)
+
+    # To print one of measures:
+    print("Humidity: {:.2f}".format(sensor.humidity))
+    print("Temperature: {:.2f}".format(sensor.temperature))
+
+
+Documentation
+=============
+
+Read the code.
+
+Contributing
+============
+
+Contributions are welcome!
