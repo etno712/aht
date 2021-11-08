@@ -3,8 +3,8 @@
 Introduction
 ============
 
-Driver in Micropython for AHT2x: humidity and temperature sensors.
-the driver covers 100% of the sensor's functionality:
+Driver in MicroPython for AHT2x: humidity and temperature sensors.
+The driver covers 100% of the sensor's functionality:
 * measurement of relative humidity and temperature.
 * automatic calibration.
 * reset function.
