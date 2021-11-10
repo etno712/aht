@@ -10,7 +10,7 @@ from micropython import const
 __author__ = "Jonathan Fromentin"
 __credits__ = ["Jonathan Fromentin"]
 __license__ = "CeCILL version 2.1"
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __maintainer__ = "Jonathan Fromentin"
 
 
@@ -37,7 +37,7 @@ class AHT2x:
         self.i2c = i2c
         self.address = address
         self.active_crc = crc
-        self._buf = bytearray(7)
+        self._buf = bytearray(6 + crc) # Request the CRC byte only if necessary
         self._values = {"hum": None, "temp": None}
         self._reload = {"hum": True, "temp": True}
         while not self.status & AHT_STATUS_CALIBRATED:
