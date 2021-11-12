@@ -10,7 +10,7 @@ from micropython import const
 __author__ = "Jonathan Fromentin"
 __credits__ = ["Jonathan Fromentin"]
 __license__ = "CeCILL version 2.1"
-__version__ = "0.3.0"
+__version__ = "1.0.0"
 __maintainer__ = "Jonathan Fromentin"
 
 
@@ -37,14 +37,24 @@ class AHT2x:
         self.i2c = i2c
         self.address = address
         self.active_crc = crc
-        self._buf = bytearray(6 + crc) # Request the CRC byte only if necessary
+        self._buf = bytearray(6 + crc)  # Request the CRC byte only if necessary
         self._values = {"hum": None, "temp": None}
         self._reload = {"hum": True, "temp": True}
-        while not self.status & AHT_STATUS_CALIBRATED:
+        while not self.is_calibrated:
             self._calibrate()
 
     @property
-    def status(self):
+    def is_busy(self):
+        """The sensor is busy until the measurement is complete."""
+        return bool(self._status() & AHT_STATUS_BUSY)
+
+    @property
+    def is_calibrated(self):
+        """The activation of the calibration must be done before any
+        measurement. If not, do a soft reset."""
+        return bool(self._status() & AHT_STATUS_CALIBRATED)
+
+    def _status(self):
         """The status byte initially returned from the sensor.
         Bit     Definition  Description
         [0:2]   Remained    Remained
@@ -78,12 +88,18 @@ class AHT2x:
         return self._values["temp"]
 
     def reset(self):
-        """This command is used to restart the sensor system without turning
-        the power off and on again. After receiving this command, the sensor
-        system begins to re-initialize and restore the default setting state"""
+        """The soft reset command is used to restart the sensor system without
+        turning the power off and on again. After receiving this command, the
+        sensor system begins to re-initialize and restore the default setting
+        state"""
         self._buf[0] = AHT_CMD_RESET
-        self.i2c.writeto(self.address, self._buf[0])
+        self.i2c.writeto(self.address, self._buf[:1])
         time.sleep(0.02)  # The time required for reset does not exceed 20 ms
+
+        """The soft reset is badly documented. It is therefore possible that it
+        is necessary to calibrate the sensor after a soft reset."""
+        while not self.is_calibrated:
+            self._calibrate()
 
     def _calibrate(self):
         """Internal function to send initialization command.
@@ -118,7 +134,7 @@ class AHT2x:
         self._buf[2] = 0x00
         self.i2c.writeto(self.address, self._buf[:3])
         time.sleep(0.08)  # Wait 80ms for the measurement to be completed.
-        while self.status & AHT_STATUS_BUSY:
+        while self.is_busy:
             time.sleep(0.01)
         self.i2c.readfrom_into(self.address, self._buf)
 
