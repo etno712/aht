@@ -10,7 +10,7 @@ from micropython import const
 __author__ = "Jonathan Fromentin"
 __credits__ = ["Jonathan Fromentin"]
 __license__ = "CeCILL version 2.1"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __maintainer__ = "Jonathan Fromentin"
 
 
@@ -32,7 +32,7 @@ class AHT2x:
         """Parameters:
         i2c: instance of machine.I2C
         address: i2c address of sensor
-        crc: Boolean for CRC control True to active the CRC control."""
+        crc: Boolean for CRC control. True to active the CRC control."""
         time.sleep(0.04)  # Wait  40ms  after  power-on.
         self.i2c = i2c
         self.address = address
@@ -63,7 +63,10 @@ class AHT2x:
         [5:6]   Remained    Remained
         [7]     Busy        0:Free in dormant state, 1:Busy in measurement"""
         self.i2c.readfrom_into(self.address, self._buf)
-        return self._buf[0]
+
+        if not self.active_crc or (self._crc8() == self._buf[6]):
+            return self._buf[0]
+        return AHT_STATUS_BUSY  # Return the status busy and uncalibrated
 
     @property
     def humidity(self):
@@ -96,8 +99,8 @@ class AHT2x:
         self.i2c.writeto(self.address, self._buf[:1])
         time.sleep(0.02)  # The time required for reset does not exceed 20 ms
 
-        """The soft reset is badly documented. It is therefore possible that it
-        is necessary to calibrate the sensor after a soft reset."""
+        # The soft reset is badly documented. It is therefore possible that it
+        # is necessary to calibrate the sensor after a soft reset.
         while not self.is_calibrated:
             self._calibrate()
 
@@ -125,11 +128,12 @@ class AHT2x:
                     crc[0] = (crc[0] << 1) ^ AHT_CRC_POLYNOMIAL
                 else:
                     crc[0] = crc[0] << 1
+
         return crc[0]
 
     def _measure(self):
         """Internal function for triggering the AHT to read temp/humidity"""
-        self._buf[0] = 0xAC
+        self._buf[0] = AHT_CMD_TRIGGER
         self._buf[1] = 0x33
         self._buf[2] = 0x00
         self.i2c.writeto(self.address, self._buf[:3])
