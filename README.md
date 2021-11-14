@@ -5,10 +5,11 @@ Introduction
 
 Driver in MicroPython for AHT2x: humidity and temperature sensors.
 The driver covers 100% of the sensor's functionality:
-* measurement of relative humidity and temperature.
-* automatic calibration.
-* reset function.
-* control function (with CRC8 Dallas/Maxim).
+* Get busy status or calibrated status.
+* Measurement of relative humidity and temperature.
+* Automatic calibration.
+* Reset function.
+* Control function (with CRC8 Dallas/Maxim).
 
 Compatible models:
 * AHT20
@@ -19,8 +20,8 @@ Dependencies
 
 This driver has no dependency
 
-Installing from PyPI
-=====================
+Install
+=======
 
 Copy the file aht.py in your project folder.
 
