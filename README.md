@@ -38,8 +38,9 @@ Usage Example
     sensor = aht.AHT2x(i2c, crc=True)
 
     # To print one of measures:
-    print("Humidity: {:.2f}".format(sensor.humidity))
-    print("Temperature: {:.2f}".format(sensor.temperature))
+    if sensor.is_ready:
+        print("Humidity: {:.2f}".format(sensor.humidity))
+        print("Temperature: {:.2f}".format(sensor.temperature))
 
 
 Documentation
