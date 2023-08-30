@@ -10,7 +10,7 @@ from micropython import const
 __author__ = "Jonathan Fromentin"
 __credits__ = ["Jonathan Fromentin"]
 __license__ = "CeCILL version 2.1"
-__version__ = "1.1.0"
+__version__ = "2.0.0"
 __maintainer__ = "Jonathan Fromentin"
 
 
@@ -38,15 +38,17 @@ class AHT2x:
         self.address = address
         self.active_crc = crc
         self._buf = bytearray(6 + crc)  # Request the CRC byte only if necessary
-        self._values = {"hum": None, "temp": None}
-        self._reload = {"hum": True, "temp": True}
+        self.humidity = None
+        self.temperature = None
         while not self.is_calibrated:
             self._calibrate()
 
     @property
-    def is_busy(self):
+    def is_ready(self):
         """The sensor is busy until the measurement is complete."""
-        return bool(self._status() & AHT_STATUS_BUSY)
+        if bool(self._status() & AHT_STATUS_BUSY):
+            return False
+        return self._measure()
 
     @property
     def is_calibrated(self):
@@ -67,28 +69,6 @@ class AHT2x:
         if not self.active_crc or (self._crc8() == self._buf[6]):
             return self._buf[0]
         return AHT_STATUS_BUSY  # Return the status busy and uncalibrated
-
-    @property
-    def humidity(self):
-        """The measured relative humidity in percent."""
-        if self._reload["hum"]:
-            self._measure()
-            self._reload["temp"] = False
-        else:
-            self._reload["hum"] = True
-
-        return self._values["hum"]
-
-    @property
-    def temperature(self):
-        """The measured temperature in degrees Celsius."""
-        if self._reload["temp"]:
-            self._measure()
-            self._reload["hum"] = False
-        else:
-            self._reload["temp"] = True
-
-        return self._values["temp"]
 
     def reset(self):
         """The soft reset command is used to restart the sensor system without
@@ -138,19 +118,12 @@ class AHT2x:
         self._buf[2] = 0x00
         self.i2c.writeto(self.address, self._buf[:3])
         time.sleep(0.08)  # Wait 80ms for the measurement to be completed.
-        while self.is_busy:
-            time.sleep(0.01)
         self.i2c.readfrom_into(self.address, self._buf)
 
         if not self.active_crc or (self._crc8() == self._buf[6]):
-            self._values["hum"] = (
-                (self._buf[1] << 12) | (self._buf[2] << 4) | (self._buf[3] >> 4)
-            )
-            self._values["hum"] = (self._values["hum"] * 100) / 0x100000
-            self._values["temp"] = (
-                ((self._buf[3] & 0xF) << 16) | (self._buf[4] << 8) | self._buf[5]
-            )
-            self._values["temp"] = ((self._values["temp"] * 200.0) / 0x100000) - 50
-        else:
-            self._values["hum"] = 0
-            self._values["temp"] = 0
+            hum = self._buf[1] << 12 | self._buf[2] << 4 | self._buf[3] >> 4
+            self.humidity = hum * 100 / 0x100000
+            temp = (self._buf[3] & 0xF) << 16 | self._buf[4] << 8 | self._buf[5]
+            self.temperature = temp * 200.0 / 0x100000 - 50
+            return True
+        return False
